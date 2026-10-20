@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Football Manager Lite</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header>
+    <h1>⚽ Football Manager Lite</h1>
+    <div class="controls">
+      <button id="btnSim1">Simular Rodada</button>
+      <button id="btnSim5">Simular 5</button>
+      <button id="btnSimAll">Simular Temporada</button>
+      <button id="btnNew">Nova Temporada</button>
+      <button id="btnExport">Exportar</button>
+      <button id="btnImport">Importar</button>
+      <input type="file" id="fileImport" style="display:none" accept=".json">
+    </div>
+    <div class="status">
+      Temporada <span id="season">2025</span> · Rodada <span id="round">0</span>/99
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button data-tab="div1" class="active">Divisão 1</button>
+    <button data-tab="div2">Divisão 2</button>
+    <button data-tab="round">Rodada Atual</button>
+    <button data-tab="history">Histórico</button>
+  </nav>
+
+  <main>
+    <section id="tab-div1" class="tab-content active"><table class="standings" id="standings-div1"></table></section>
+    <section id="tab-div2" class="tab-content"><table class="standings" id="standings-div2"></table></section>
+    <section id="tab-round" class="tab-content"><div id="round-matches"></div></section>
+    <section id="tab-history" class="tab-content"><div id="history-content"></div></section>
+  </main>
+
+  <script src="js/teams.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
