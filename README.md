@@ -1,6 +1,7 @@
 # Football-Manager-Lite
 Football Manager Lite
 # Football Manager Lite
+https://profeniclas-lab.github.io/Football-Manager-Lite/
 
 Simulador de 200 clubes em 2 divisões (100 cada). Turno único, 99 rodadas.
 Sem dependências. 100% client-side. Salva automaticamente em `localStorage`.
