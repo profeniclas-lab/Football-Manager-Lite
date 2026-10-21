@@ -1,88 +1,26 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
-
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: #0f1419;
-  color: #e6e6e6;
-  min-height: 100vh;
-}
-
-header {
-  background: #1a1f2e;
-  padding: 16px 24px;
-  border-bottom: 1px solid #2a3040;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items: center;
-  justify-content: space-between;
-}
-
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f1419; color: #e6e6e6; min-height: 100vh; }
+header { background: #1a1f2e; padding: 16px 24px; border-bottom: 1px solid #2a3040; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
 h1 { font-size: 20px; color: #4ade80; }
-
 .controls { display: flex; gap: 8px; flex-wrap: wrap; }
-
-button {
-  background: #2a3040;
-  color: #e6e6e6;
-  border: 1px solid #3a4055;
-  padding: 8px 14px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  transition: all 0.15s;
-}
+button { background: #2a3040; color: #e6e6e6; border: 1px solid #3a4055; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all 0.15s; }
 button:hover { background: #3a4055; border-color: #4ade80; }
 button:active { transform: scale(0.97); }
 #btnSim1 { background: #059669; border-color: #059669; }
 #btnSim1:hover { background: #047857; }
 #btnSimAll { background: #7c3aed; border-color: #7c3aed; }
 #btnSimAll:hover { background: #6d28d9; }
-
 .status { color: #94a3b8; font-size: 13px; }
 .status span { color: #4ade80; font-weight: 600; }
-
-.tabs {
-  display: flex;
-  gap: 4px;
-  padding: 12px 24px 0;
-  background: #1a1f2e;
-  border-bottom: 1px solid #2a3040;
-  overflow-x: auto;
-}
-.tabs button {
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  border-radius: 0;
-  padding: 10px 16px;
-  color: #94a3b8;
-}
+.tabs { display: flex; gap: 4px; padding: 12px 24px 0; background: #1a1f2e; border-bottom: 1px solid #2a3040; overflow-x: auto; }
+.tabs button { background: transparent; border: none; border-bottom: 2px solid transparent; border-radius: 0; padding: 10px 16px; color: #94a3b8; }
 .tabs button.active { color: #4ade80; border-bottom-color: #4ade80; }
 .tabs button:hover { background: #2a3040; }
-
 main { padding: 24px; max-width: 1400px; margin: 0 auto; }
 .tab-content { display: none; }
 .tab-content.active { display: block; overflow-x: auto; }
-
-table.standings {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-  background: #1a1f2e;
-  border-radius: 8px;
-  overflow: hidden;
-}
-table.standings th {
-  background: #2a3040;
-  padding: 10px 8px;
-  text-align: left;
-  font-weight: 600;
-  color: #94a3b8;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
+table.standings { width: 100%; border-collapse: collapse; font-size: 13px; background: #1a1f2e; border-radius: 8px; overflow: hidden; }
+table.standings th { background: #2a3040; padding: 10px 8px; text-align: left; font-weight: 600; color: #94a3b8; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
 table.standings td { padding: 8px; border-bottom: 1px solid #2a3040; }
 table.standings tr:last-child td { border-bottom: none; }
 table.standings tr:hover { background: #222838; }
@@ -90,41 +28,19 @@ table.standings tr.promotion { background: rgba(74, 222, 128, 0.08); }
 table.standings tr.promotion td:first-child { border-left: 3px solid #4ade80; }
 table.standings tr.relegation { background: rgba(239, 68, 68, 0.08); }
 table.standings tr.relegation td:first-child { border-left: 3px solid #ef4444; }
-
 .team-name { font-weight: 500; white-space: nowrap; }
 .country { color: #94a3b8; font-size: 12px; }
-
 .matches { display: grid; gap: 6px; margin-bottom: 24px; }
-.match {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  padding: 8px 12px;
-  background: #1a1f2e;
-  border-radius: 6px;
-  font-size: 13px;
-  gap: 12px;
-}
+.match { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 8px 12px; background: #1a1f2e; border-radius: 6px; font-size: 13px; gap: 12px; }
 .match .home { text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .match .away { text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.match .score {
-  background: #2a3040;
-  padding: 4px 12px;
-  border-radius: 4px;
-  font-weight: 600;
-  min-width: 60px;
-  text-align: center;
-}
-
+.match .score { background: #2a3040; padding: 4px 12px; border-radius: 4px; font-weight: 600; min-width: 60px; text-align: center; }
 h3 { font-size: 16px; color: #4ade80; margin: 16px 0 8px; }
-
 .empty { color: #94a3b8; text-align: center; padding: 40px; font-size: 14px; }
-
 .history-list { display: grid; gap: 12px; }
 .history-item { background: #1a1f2e; padding: 16px; border-radius: 8px; }
 .history-item h4 { color: #4ade80; margin-bottom: 8px; }
 .history-item p { font-size: 13px; margin-bottom: 4px; }
-
 @media (max-width: 768px) {
   main { padding: 12px; }
   table.standings { font-size: 11px; }
