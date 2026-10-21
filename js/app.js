@@ -1,21 +1,22 @@
 // ===== CONFIGURAÇÃO =====
 const HOME_ADV       = 3;
-const NOISE          = 3;       // era 5
-const K              = 0.032;   // era 0.035
+const NOISE          = 3;
+const K              = 0.032;
 const BASE_GOALS     = 1.30;
-const MAX_DIFF       = 26;      // NOVO: teto de diferença
-const MAX_GOALS      = 7;       // NOVO: teto por time
+const MAX_DIFF       = 26;
+const MAX_GOALS      = 7;
 const FORM_WEIGHT    = 2;
 const ROUNDS         = 99;
 
-const PROMOTED_COUNT   = 30;    // era 3
-const RELEGATED_COUNT  = 30;    // era 3
+const PROMOTED_COUNT   = 30;
+const RELEGATED_COUNT  = 30;
 
 const REP_UPDATE_ROUNDS = [20, 40, 60, 80, 99];
-const REP_FACTOR        = 0.10;  // overall por ponto de surplus
-const REP_CAP           = 2.0;   // delta máximo por atualização
+const REP_FACTOR        = 0.10;
+const REP_CAP           = 2.0;
 
-const STORAGE_KEY = 'football-manager-v1'; // mantido — migra automaticamente
+const DIVISIONS = ['div1', 'div2', 'div3'];
+const STORAGE_KEY = 'football-manager-v2';   // bump → save antigo v1 é ignorado
 
 // ===== UTIL =====
 function gauss() {
@@ -41,25 +42,36 @@ function createInitialState() {
     country: row[1],
     reputation: row[2],
     overall: +(row[2] * 10).toFixed(2),
-    division: idx < 100 ? 1 : 2,
+    division: idx < 100 ? 1 : idx < 200 ? 2 : 3,
     form: [],
     lastRepDelta: 0,
     stats: { played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, pts: 0 }
   }));
 
-  const div1 = teams.filter(t => t.division === 1);
-  const div2 = teams.filter(t => t.division === 2);
-
   return {
     season: 2025,
     round: 0,
     teams,
-    fixtures: { div1: generateCalendar(div1), div2: generateCalendar(div2) },
-    results:  { div1: Array(ROUNDS).fill(null), div2: Array(ROUNDS).fill(null) },
+    fixtures: rebuildFixtures(teams),
+    results:  emptyResults(),
     history: [],
     repLog: [],
     lastRepUpdateRound: 0
   };
+}
+
+function rebuildFixtures(teams) {
+  const f = {};
+  for (const div of DIVISIONS) {
+    const n = div === 'div1' ? 1 : div === 'div2' ? 2 : 3;
+    f[div] = generateCalendar(teams.filter(t => t.division === n));
+  }
+  return f;
+}
+function emptyResults() {
+  const r = {};
+  for (const div of DIVISIONS) r[div] = Array(ROUNDS).fill(null);
+  return r;
 }
 
 // ===== CALENDÁRIO =====
@@ -115,7 +127,7 @@ function updateTeam(team, gf, ga) {
   if (team.form.length > 5) team.form.shift();
 }
 
-// ===== ATUALIZAÇÃO DE REPUTAÇÃO =====
+// ===== REPUTAÇÃO =====
 function expectedPts(myOvr, oppOvr, isHome) {
   const diff = myOvr - oppOvr + (isHome ? HOME_ADV : -HOME_ADV);
   const pWin  = 1 / (1 + Math.exp(-0.10 * diff));
@@ -135,11 +147,10 @@ function updateReputations(state) {
   for (const t of state.teams) accum[t.id] = { actual: 0, expected: 0, games: 0 };
 
   for (let r = fromRound; r < toRound; r++) {
-    for (const div of ['div1', 'div2']) {
+    for (const div of DIVISIONS) {
       const fixtures = state.fixtures[div][r];
       const results  = state.results[div][r];
       if (!fixtures || !results) continue;
-
       fixtures.forEach((f, i) => {
         const h = teamMap[f.home], a = teamMap[f.away], res = results[i];
         const hPts = res.gH > res.gA ? 3 : res.gH === res.gA ? 1 : 0;
@@ -160,16 +171,13 @@ function updateReputations(state) {
   for (const team of state.teams) {
     const acc = accum[team.id];
     if (acc.games < 3) continue;
-
     let delta = (acc.actual - acc.expected) * REP_FACTOR;
     delta = clamp(delta, -REP_CAP, REP_CAP);
     if (Math.abs(delta) < 0.02) { team.lastRepDelta = 0; continue; }
-
     const oldOvr = team.overall;
     team.overall = clamp(team.overall + delta, 60, 95);
     team.reputation = +(team.overall / 10).toFixed(3);
     team.lastRepDelta = team.overall - oldOvr;
-
     changes.push({ team: team.name, oldOvr, newOvr: team.overall, delta });
   }
 
@@ -186,7 +194,7 @@ function simulateRound(state) {
   for (const t of state.teams) teamMap[t.id] = t;
 
   const r = state.round;
-  for (const div of ['div1', 'div2']) {
+  for (const div of DIVISIONS) {
     const fixtures = state.fixtures[div][r];
     const results  = new Array(fixtures.length);
     for (let i = 0; i < fixtures.length; i++) {
@@ -206,7 +214,6 @@ function simulateRound(state) {
       state.round > (state.lastRepUpdateRound || 0)) {
     updateReputations(state);
   }
-
   return true;
 }
 
@@ -223,24 +230,43 @@ function getStandings(state, division) {
     );
 }
 
+function getZoneClass(division, pos, total) {
+  if (division === 1) return pos > total - RELEGATED_COUNT ? 'relegation' : '';
+  if (division === 2) {
+    if (pos <= PROMOTED_COUNT) return 'promotion';
+    if (pos > total - RELEGATED_COUNT) return 'relegation';
+    return '';
+  }
+  return pos <= PROMOTED_COUNT ? 'promotion' : '';
+}
+
 // ===== FIM DE TEMPORADA =====
 function applySeasonEnd(state) {
-  const div1 = getStandings(state, 1);
-  const div2 = getStandings(state, 2);
+  const d1 = getStandings(state, 1);
+  const d2 = getStandings(state, 2);
+  const d3 = getStandings(state, 3);
 
-  const relegated = div1.slice(-RELEGATED_COUNT);
-  const promoted  = div2.slice(0, PROMOTED_COUNT);
+  const relegateToDiv2 = d1.slice(-RELEGATED_COUNT);   // div1 → div2
+  const promoteToDiv1  = d2.slice(0, PROMOTED_COUNT);   // div2 → div1
+  const relegateToDiv3 = d2.slice(-RELEGATED_COUNT);   // div2 → div3
+  const promoteToDiv2  = d3.slice(0, PROMOTED_COUNT);   // div3 → div2
 
   state.history.push({
     season: state.season,
-    div1Champion: div1[0].name,
-    div2Champion: div2[0].name,
-    promoted: promoted.map(t => t.name),
-    relegated: relegated.map(t => t.name)
+    div1Champion: d1[0].name,
+    div2Champion: d2[0].name,
+    div3Champion: d3[0].name,
+    promotedToDiv1: promoteToDiv1.map(t => t.name),
+    promotedToDiv2: promoteToDiv2.map(t => t.name),
+    relegatedToDiv2: relegateToDiv2.map(t => t.name),
+    relegatedToDiv3: relegateToDiv3.map(t => t.name)
   });
 
-  relegated.forEach(t => t.division = 2);
-  promoted.forEach(t => t.division = 1);
+  // conjuntos disjuntos por divisão de origem → ordem não importa
+  relegateToDiv2.forEach(t => t.division = 2);
+  promoteToDiv1.forEach(t => t.division = 1);
+  relegateToDiv3.forEach(t => t.division = 3);
+  promoteToDiv2.forEach(t => t.division = 2);
 }
 
 function resetForNewSeason(state) {
@@ -249,10 +275,8 @@ function resetForNewSeason(state) {
     t.form = [];
     t.lastRepDelta = 0;
   });
-  const div1 = state.teams.filter(t => t.division === 1);
-  const div2 = state.teams.filter(t => t.division === 2);
-  state.fixtures = { div1: generateCalendar(div1), div2: generateCalendar(div2) };
-  state.results  = { div1: Array(ROUNDS).fill(null), div2: Array(ROUNDS).fill(null) };
+  state.fixtures = rebuildFixtures(state.teams);
+  state.results  = emptyResults();
   state.round = 0;
   state.season++;
   state.lastRepUpdateRound = 0;
@@ -268,7 +292,7 @@ function loadState() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const state = JSON.parse(raw);
-    // migração de saves antigos
+    if (!state.teams || state.teams.length !== TEAMS_DATA.length) return null; // incompatível
     if (state.lastRepUpdateRound === undefined) state.lastRepUpdateRound = 0;
     if (!state.repLog) state.repLog = [];
     state.teams.forEach(t => { if (t.lastRepDelta === undefined) t.lastRepDelta = 0; });
@@ -288,8 +312,8 @@ function renderAll() {
 }
 
 function renderStandings() {
-  for (const div of ['div1', 'div2']) {
-    const division = div === 'div1' ? 1 : 2;
+  for (const div of DIVISIONS) {
+    const division = div === 'div1' ? 1 : div === 'div2' ? 2 : 3;
     const standings = getStandings(state, division);
     const container = document.getElementById('standings-' + div);
 
@@ -301,17 +325,12 @@ function renderStandings() {
 
     standings.forEach((team, i) => {
       const pos = i + 1;
-      let cls = '';
-      if (division === 1 && pos <= PROMOTED_COUNT) cls = 'promotion';
-      else if (division === 1 && pos > standings.length - RELEGATED_COUNT) cls = 'relegation';
-      else if (division === 2 && pos <= PROMOTED_COUNT) cls = 'promotion';
-
+      const cls = getZoneClass(division, pos, standings.length);
       const gd = team.stats.gd;
       const d  = team.lastRepDelta || 0;
       const arrow = d >  0.05 ? ' <span style="color:#4ade80;font-size:11px">▲</span>'
                   : d < -0.05 ? ' <span style="color:#ef4444;font-size:11px">▼</span>'
                   : '';
-
       html += `<tr class="${cls}">
         <td>${pos}</td>
         <td class="team-name">${team.name}</td>
@@ -343,8 +362,8 @@ function renderRound() {
   for (const t of state.teams) teamMap[t.id] = t;
 
   let html = '';
-  for (const div of ['div1', 'div2']) {
-    const divName = div === 'div1' ? 'Divisão 1' : 'Divisão 2';
+  for (const div of DIVISIONS) {
+    const divName = div === 'div1' ? 'Divisão 1' : div === 'div2' ? 'Divisão 2' : 'Divisão 3';
     const fixtures = state.fixtures[div][r];
     const results  = state.results[div][r];
     if (!fixtures || !results) continue;
@@ -373,9 +392,8 @@ function renderHistory() {
       const movers = entry.changes
         .slice()
         .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
-        .slice(0, 8);
+        .slice(0, 10);
       if (movers.length === 0) return;
-
       html += `<div class="history-item"><h4>Após rodada ${entry.round}</h4>`;
       movers.forEach(m => {
         const up = m.delta > 0;
@@ -397,8 +415,11 @@ function renderHistory() {
         <h4>Temporada ${h.season}</h4>
         <p><b>Campeão Div 1:</b> ${h.div1Champion}</p>
         <p><b>Campeão Div 2:</b> ${h.div2Champion}</p>
-        <p><b>Promovidos (${h.promoted.length}):</b> ${h.promoted.join(', ')}</p>
-        <p><b>Rebaixados (${h.relegated.length}):</b> ${h.relegated.join(', ')}</p>
+        <p><b>Campeão Div 3:</b> ${h.div3Champion}</p>
+        <p><b>Sobem para Div 1 (${h.promotedToDiv1.length}):</b> ${h.promotedToDiv1.join(', ')}</p>
+        <p><b>Sobem para Div 2 (${h.promotedToDiv2.length}):</b> ${h.promotedToDiv2.join(', ')}</p>
+        <p><b>Caem para Div 2 (${h.relegatedToDiv2.length}):</b> ${h.relegatedToDiv2.join(', ')}</p>
+        <p><b>Caem para Div 3 (${h.relegatedToDiv3.length}):</b> ${h.relegatedToDiv3.join(', ')}</p>
       </div>`;
     });
     html += '</div>';
@@ -434,10 +455,8 @@ function startNewSeason() {
       t.form = [];
       t.lastRepDelta = 0;
     });
-    const div1 = state.teams.filter(t => t.division === 1);
-    const div2 = state.teams.filter(t => t.division === 2);
-    state.fixtures = { div1: generateCalendar(div1), div2: generateCalendar(div2) };
-    state.results  = { div1: Array(ROUNDS).fill(null), div2: Array(ROUNDS).fill(null) };
+    state.fixtures = rebuildFixtures(state.teams);
+    state.results  = emptyResults();
     state.round = 0;
     state.lastRepUpdateRound = 0;
   }
@@ -458,6 +477,8 @@ function importState(file) {
     try {
       const loaded = JSON.parse(e.target.result);
       if (!loaded.teams || !loaded.fixtures) throw new Error('arquivo inválido');
+      if (loaded.teams.length !== TEAMS_DATA.length)
+        throw new Error(`arquivo tem ${loaded.teams.length} times, esperado ${TEAMS_DATA.length}`);
       if (loaded.lastRepUpdateRound === undefined) loaded.lastRepUpdateRound = 0;
       if (!loaded.repLog) loaded.repLog = [];
       loaded.teams.forEach(t => { if (t.lastRepDelta === undefined) t.lastRepDelta = 0; });
